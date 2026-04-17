@@ -2,7 +2,7 @@
 
 **Date:** 2025-11-28
 **Status:** Draft
-**Source:** Two Claude instances using superpowers in real development scenarios
+**Source:** Two Claude instances using cadence in real development scenarios
 
 ---
 
@@ -507,7 +507,7 @@ Directly addresses the failure pattern from feedback.
 BEFORE writing any tests:
 
 1. Read testing-anti-patterns skill:
-   Use Skill tool: superpowers:testing-anti-patterns
+   Use Skill tool: cadence:testing-anti-patterns
 
 2. Apply gate functions from that skill when:
    - Writing mocks
@@ -640,7 +640,7 @@ How do we know these improvements work?
 
 1. **Configuration verification:**
    - Zero instances of "test passed but wrong config was used"
-   - Jesse doesn't say "that's not actually testing what you think"
+   - Reviewer doesn't say "that's not actually testing what you think"
 
 2. **Process hygiene:**
    - Zero instances of "test hit wrong server"
@@ -699,7 +699,7 @@ How do we know these improvements work?
 - testing-anti-patterns: Mock-interface drift
 - requesting-code-review: Explicit file reading
 
-**Test Phase 2 with Jesse before finalizing:**
+**Test Phase 2 with reviewer before finalizing:**
 - Get feedback on self-reflection impact
 - Validate process hygiene approach
 - Confirm skills reading requirement is worth overhead
