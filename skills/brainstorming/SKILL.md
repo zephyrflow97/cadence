@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+description: "Use this skill when building new features, new modules, cross-module changes with new interfaces/data models, or when requirements/scope are ambiguous. You MUST use it in these cases before writing code."
 ---
 
 # Brainstorming Ideas Into Designs
