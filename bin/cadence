@@ -27,9 +27,12 @@ usage() {
 Cadence — project-level skills/hooks manager
 
 Usage:
-  cadence install [path]     Install Cadence into a project (default: \$PWD)
-  cadence uninstall [path]   Remove Cadence from a project (default: \$PWD)
-  cadence -h, --help         Show this help
+  cadence install   [--claude-code] [--codex] [path]   Install into a project
+  cadence uninstall [--claude-code] [--codex] [path]   Remove from a project
+  cadence -h, --help                                   Show this help
+
+  Default path is \$PWD.
+  If no --claude-code / --codex is given, both platforms are affected.
 
 Home: $CADENCE_ROOT
 EOF

@@ -3,12 +3,40 @@
 # from a project. Safe/idempotent — skips anything that doesn't clearly belong
 # to this cadence checkout.
 #
-# Usage: bash scripts/uninstall.sh [target-project-path]
+# Usage: bash scripts/uninstall.sh [--claude-code] [--codex] [target-project-path]
+#   If neither --claude-code nor --codex is given, uninstalls both.
+#   If no path is given, uninstalls from $PWD.
 
 set -euo pipefail
 
 CADENCE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET="${1:-$PWD}"
+
+do_claude=0
+do_codex=0
+TARGET=""
+
+for arg in "$@"; do
+  case "$arg" in
+    --claude-code) do_claude=1 ;;
+    --codex)       do_codex=1 ;;
+    -h|--help)
+      sed -n '2,8p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    --*)
+      echo "error: unknown flag '$arg'" >&2; exit 1 ;;
+    *)
+      [[ -z "$TARGET" ]] || { echo "error: multiple target paths given" >&2; exit 1; }
+      TARGET="$arg" ;;
+  esac
+done
+
+if [[ $do_claude -eq 0 && $do_codex -eq 0 ]]; then
+  do_claude=1
+  do_codex=1
+fi
+
+TARGET="${TARGET:-$PWD}"
 
 [[ -d "$TARGET" ]] || { echo "error: '$TARGET' is not a directory" >&2; exit 1; }
 TARGET="$(cd "$TARGET" && pwd)"
@@ -21,9 +49,14 @@ command -v python3 >/dev/null || {
   echo "error: python3 required" >&2; exit 1;
 }
 
+platforms=()
+(( do_claude )) && platforms+=("Claude Code")
+(( do_codex )) && platforms+=("Codex")
+
 echo "Uninstalling Cadence"
-echo "  cadence: $CADENCE_ROOT"
-echo "  from:    $TARGET"
+echo "  cadence:   $CADENCE_ROOT"
+echo "  from:      $TARGET"
+echo "  platforms: ${platforms[*]}"
 
 # Remove a symlink only if it points into this cadence checkout.
 unlink_if_cadence() {
@@ -45,12 +78,12 @@ unlink_if_cadence() {
   fi
 }
 
-unlink_if_cadence "$TARGET/.claude/skills" "$CADENCE_ROOT/skills"
-unlink_if_cadence "$TARGET/.claude/agents" "$CADENCE_ROOT/agents"
-unlink_if_cadence "$TARGET/.agents/skills" "$CADENCE_ROOT/skills"
+# --- Claude Code ---
+if (( do_claude )); then
+  unlink_if_cadence "$TARGET/.claude/skills" "$CADENCE_ROOT/skills"
+  unlink_if_cadence "$TARGET/.claude/agents" "$CADENCE_ROOT/agents"
 
-# Clean dangling empty .claude / .agents dirs (rmdir fails silently if non-empty).
-python3 - "$TARGET/.claude/settings.json" <<'PY'
+  python3 - "$TARGET/.claude/settings.json" <<'PY'
 import json, os, sys
 path = sys.argv[1]
 if not os.path.exists(path):
@@ -91,8 +124,13 @@ else:
     os.remove(path)
     print(f"  removed {path} (empty after cleanup)")
 PY
+fi
 
-python3 - "$TARGET/AGENTS.md" <<'PY'
+# --- Codex ---
+if (( do_codex )); then
+  unlink_if_cadence "$TARGET/.agents/skills" "$CADENCE_ROOT/skills"
+
+  python3 - "$TARGET/AGENTS.md" <<'PY'
 import os, re, sys
 path = sys.argv[1]
 if not os.path.exists(path):
@@ -123,6 +161,7 @@ else:
     os.remove(path)
     print(f"  removed {path} (empty after cleanup)")
 PY
+fi
 
 # Drop now-empty .claude / .agents directories (only if completely empty).
 for d in "$TARGET/.claude" "$TARGET/.agents"; do
