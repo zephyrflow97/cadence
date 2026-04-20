@@ -29,7 +29,7 @@ If CLAUDE.md or AGENTS.md says "don't use TDD" and a skill says "always use TDD,
 
 **In Claude Code:** Use the `Skill` tool. When you invoke a skill, its content is loaded and presented to you—follow it directly. Never use the Read tool on skill files.
 
-**In Codex:** Skills are auto-discovered via `~/.agents/skills/`. Invocation is native — read the SKILL.md content and follow it directly.
+**In Codex:** Skills are auto-discovered via `~/.codex/skills/`. Invocation is native — read the SKILL.md content and follow it directly.
 
 ## Platform Adaptation
 

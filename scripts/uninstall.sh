@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Reverse install.sh: remove cadence symlinks, hook entries, and AGENTS.md block
-# from a project. Safe/idempotent — skips anything that doesn't clearly belong
-# to this cadence checkout.
+# Reverse install.sh: remove generated Cadence files, legacy symlinks, hook
+# entries, and the Codex AGENTS.md block from a project. Safe/idempotent.
 #
 # Usage: bash scripts/uninstall.sh [--claude-code] [--codex] [target-project-path]
 #   If neither --claude-code nor --codex is given, uninstalls both.
@@ -24,10 +23,13 @@ for arg in "$@"; do
       exit 0
       ;;
     --*)
-      echo "error: unknown flag '$arg'" >&2; exit 1 ;;
+      echo "error: unknown flag '$arg'" >&2
+      exit 1
+      ;;
     *)
       [[ -z "$TARGET" ]] || { echo "error: multiple target paths given" >&2; exit 1; }
-      TARGET="$arg" ;;
+      TARGET="$arg"
+      ;;
   esac
 done
 
@@ -42,11 +44,13 @@ TARGET="${TARGET:-$PWD}"
 TARGET="$(cd "$TARGET" && pwd)"
 
 [[ "$TARGET" != "$CADENCE_ROOT" ]] || {
-  echo "error: cannot uninstall from cadence itself" >&2; exit 1;
+  echo "error: cannot uninstall from cadence itself" >&2
+  exit 1
 }
 
 command -v python3 >/dev/null || {
-  echo "error: python3 required" >&2; exit 1;
+  echo "error: python3 required" >&2
+  exit 1
 }
 
 platforms=()
@@ -58,7 +62,6 @@ echo "  cadence:   $CADENCE_ROOT"
 echo "  from:      $TARGET"
 echo "  platforms: ${platforms[*]}"
 
-# Remove a symlink only if it points into this cadence checkout.
 unlink_if_cadence() {
   local dst="$1" expected="$2"
   if [[ ! -e "$dst" && ! -L "$dst" ]]; then
@@ -68,6 +71,7 @@ unlink_if_cadence() {
     echo "  skip $dst (not a symlink; leaving alone)"
     return 0
   fi
+
   local target
   target="$(readlink "$dst")"
   if [[ "$target" == "$expected" ]]; then
@@ -78,12 +82,20 @@ unlink_if_cadence() {
   fi
 }
 
-# --- Claude Code ---
 if (( do_claude )); then
-  unlink_if_cadence "$TARGET/.claude/skills" "$CADENCE_ROOT/skills"
-  unlink_if_cadence "$TARGET/.claude/agents" "$CADENCE_ROOT/agents"
+  claude_root="$TARGET/.claude"
+  claude_marker="$claude_root/.cadence-generated.json"
 
-  python3 - "$TARGET/.claude/settings.json" <<'PY'
+  if [[ -f "$claude_marker" ]]; then
+    rm -rf "$claude_root/skills" "$claude_root/agents"
+    rm -f "$claude_marker"
+    echo "  removed generated $claude_root/skills and $claude_root/agents"
+  else
+    unlink_if_cadence "$claude_root/skills" "$CADENCE_ROOT/skills"
+    unlink_if_cadence "$claude_root/agents" "$CADENCE_ROOT/agents"
+  fi
+
+  python3 - "$claude_root/settings.json" <<'PY'
 import json, os, sys
 path = sys.argv[1]
 if not os.path.exists(path):
@@ -126,9 +138,37 @@ else:
 PY
 fi
 
-# --- Codex ---
 if (( do_codex )); then
-  unlink_if_cadence "$TARGET/.agents/skills" "$CADENCE_ROOT/skills"
+  codex_root="$TARGET/.codex"
+  codex_skills_dir="$codex_root/skills"
+  codex_marker="$codex_root/.cadence-generated.json"
+  codex_legacy_marker="$codex_skills_dir/.cadence-generated.json"
+  legacy_codex_root="$TARGET/.agents"
+  legacy_codex_skills_dir="$legacy_codex_root/skills"
+  legacy_codex_marker="$legacy_codex_root/.cadence-generated.json"
+  legacy_codex_skills_marker="$legacy_codex_skills_dir/.cadence-generated.json"
+
+  if [[ -f "$codex_marker" ]]; then
+    rm -rf "$codex_skills_dir"
+    rm -f "$codex_marker"
+    echo "  removed generated $codex_skills_dir"
+  elif [[ -f "$codex_legacy_marker" ]]; then
+    rm -rf "$codex_skills_dir"
+    echo "  removed legacy generated $codex_skills_dir"
+  else
+    unlink_if_cadence "$codex_skills_dir" "$CADENCE_ROOT/skills"
+  fi
+
+  if [[ -f "$legacy_codex_marker" ]]; then
+    rm -rf "$legacy_codex_skills_dir"
+    rm -f "$legacy_codex_marker"
+    echo "  removed legacy generated $legacy_codex_skills_dir"
+  elif [[ -f "$legacy_codex_skills_marker" ]]; then
+    rm -rf "$legacy_codex_skills_dir"
+    echo "  removed legacy generated $legacy_codex_skills_dir"
+  else
+    unlink_if_cadence "$legacy_codex_skills_dir" "$CADENCE_ROOT/skills"
+  fi
 
   python3 - "$TARGET/AGENTS.md" <<'PY'
 import os, re, sys
@@ -163,8 +203,7 @@ else:
 PY
 fi
 
-# Drop now-empty .claude / .agents directories (only if completely empty).
-for d in "$TARGET/.claude" "$TARGET/.agents"; do
+for d in "$TARGET/.claude" "$TARGET/.codex" "$TARGET/.agents"; do
   if [[ -d "$d" ]] && [[ -z "$(ls -A "$d")" ]]; then
     rmdir "$d"
     echo "  removed empty $d"
