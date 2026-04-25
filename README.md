@@ -18,9 +18,9 @@ There's a bunch more to it, but that's the core of the system. Cadence ships the
 
 1. **brainstorming** - Activates before writing code. Refines rough ideas through questions, explores alternatives, presents design in sections for validation. Saves design document.
 
-2. **using-git-worktrees** - Activates after design approval. Creates isolated workspace on new branch, runs project setup, verifies clean test baseline.
+2. **writing-plans** - Activates with approved design. Breaks work into bite-sized tasks (2-5 minutes each). Every task has exact file paths, complete code, verification steps.
 
-3. **writing-plans** - Activates with approved design. Breaks work into bite-sized tasks (2-5 minutes each). Every task has exact file paths, complete code, verification steps.
+3. **using-git-worktrees** - Activates after the implementation plan is saved and committed. Creates isolated workspace on new branch, runs project setup, verifies clean test baseline.
 
 4. **subagent-driven-development** - Activates with plan. Dispatches fresh subagent per task with two-stage review: spec compliance, then code quality.
 

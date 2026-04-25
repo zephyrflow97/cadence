@@ -13,7 +13,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
-**Context:** This should be run in a dedicated worktree (created by brainstorming skill).
+**Context:** Save and commit the plan before execution so implementation agents can read it.
 
 **Save plans to:** `docs/cadence/plans/YYYY-MM-DD-<feature-name>.md`
 - (User preferences for plan location override this default)
@@ -133,7 +133,7 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 ## Execution Handoff
 
-After saving the plan, stop. Do not execute until the user explicitly says `go`.
+After saving and committing the plan, stop. Do not execute until the user explicitly says `go`.
 
 **"Plan complete and saved to `docs/cadence/plans/<filename>.md`.
 

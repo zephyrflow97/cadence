@@ -50,11 +50,13 @@ digraph process {
         "Mark task complete in TodoWrite" [shape=box];
     }
 
+    "Verify isolated worktree is ready\n(use cadence:using-git-worktrees if needed)" [shape=box];
     "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
     "More tasks remain?" [shape=diamond];
     "Dispatch final code reviewer subagent for entire implementation" [shape=box];
     "Use cadence:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
+    "Verify isolated worktree is ready\n(use cadence:using-git-worktrees if needed)" -> "Read plan, extract all tasks with full text, note context, create TodoWrite";
     "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
@@ -120,6 +122,7 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 ```
 You: I'm using Subagent-Driven Development to execute this plan.
 
+[Verify isolated worktree is ready; use cadence:using-git-worktrees if needed]
 [Read plan file once: docs/cadence/plans/feature-plan.md]
 [Extract all 5 tasks with full text and context]
 [Create TodoWrite with all tasks]
@@ -252,7 +255,7 @@ Done!
 ## Integration
 
 **Required workflow skills:**
-- **cadence:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
+- **cadence:using-git-worktrees** - REQUIRED: Verify isolated workspace as the first step; use this skill to create one if needed
 - **cadence:writing-plans** - Creates the plan this skill executes
 - **cadence:requesting-code-review** - Code review template for reviewer subagents
 - **cadence:finishing-a-development-branch** - Complete development after all tasks
