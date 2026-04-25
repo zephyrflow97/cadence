@@ -47,14 +47,14 @@ else
 fi
 echo ""
 
-# Test: mid-conversation execute plan
-echo ">>> Test 4: mid-conversation-execute-plan"
-if "$SCRIPT_DIR/run-test.sh" "subagent-driven-development" "$PROMPTS_DIR/mid-conversation-execute-plan.txt"; then
+# Test: mid-conversation subagent-driven development
+echo ">>> Test 4: mid-conversation-subagent-driven-development"
+if "$SCRIPT_DIR/run-test.sh" "subagent-driven-development" "$PROMPTS_DIR/mid-conversation-subagent-driven-development.txt"; then
     PASSED=$((PASSED + 1))
-    RESULTS="$RESULTS\nPASS: mid-conversation-execute-plan"
+    RESULTS="$RESULTS\nPASS: mid-conversation-subagent-driven-development"
 else
     FAILED=$((FAILED + 1))
-    RESULTS="$RESULTS\nFAIL: mid-conversation-execute-plan"
+    RESULTS="$RESULTS\nFAIL: mid-conversation-subagent-driven-development"
 fi
 echo ""
 

@@ -49,7 +49,7 @@ This structure informs the task decomposition. Each task should produce self-con
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use cadence:subagent-driven-development (recommended) or cadence:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use cadence:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -133,20 +133,12 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 ## Execution Handoff
 
-After saving the plan, offer execution choice:
+After saving the plan, stop. Do not execute until the user explicitly says `go`.
 
-**"Plan complete and saved to `docs/cadence/plans/<filename>.md`. Two execution options:**
+**"Plan complete and saved to `docs/cadence/plans/<filename>.md`.
 
-**1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
+Say `go` to execute it with subagent-driven-development, or tell me what to change."**
 
-**2. Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints
-
-**Which approach?"**
-
-**If Subagent-Driven chosen:**
+**If execution is approved:**
 - **REQUIRED SUB-SKILL:** Use cadence:subagent-driven-development
 - Fresh subagent per task + two-stage review
-
-**If Inline Execution chosen:**
-- **REQUIRED SUB-SKILL:** Use cadence:executing-plans
-- Batch execution with checkpoints for review

@@ -28,9 +28,6 @@ CODEX_CORE_SKILL_FILES: dict[str, list[str]] = {
         "SKILL.md",
         "plan-document-reviewer-prompt.md",
     ],
-    "executing-plans": [
-        "SKILL.md",
-    ],
     "using-git-worktrees": [
         "SKILL.md",
     ],
@@ -299,20 +296,6 @@ def transform_visual_companion_codex(text: str) -> str:
     return text
 
 
-def transform_executing_plans_claude(text: str) -> str:
-    return text.replace(
-        "**Note:** Tell your human partner that Cadence works much better with access to subagents. The quality of its work will be significantly higher if run on a platform with subagent support (such as Claude Code or Codex). If subagents are available, use cadence:subagent-driven-development instead of this skill.",
-        "**Note:** Tell your human partner that Cadence works much better with access to Claude Code subagents. If subagents are available, use cadence:subagent-driven-development instead of this skill.",
-    )
-
-
-def transform_executing_plans_codex(text: str) -> str:
-    return text.replace(
-        "**Note:** Tell your human partner that Cadence works much better with access to subagents. The quality of its work will be significantly higher if run on a platform with subagent support (such as Claude Code or Codex). If subagents are available, use cadence:subagent-driven-development instead of this skill.",
-        "**Note:** If your Codex environment has multi-agent support, prefer `subagent-driven-development` over this skill.",
-    )
-
-
 def transform_writing_skills_claude(text: str) -> str:
     return text.replace(
         "**Personal skills live in agent-specific directories (`~/.claude/skills` for Claude Code, `~/.codex/skills/` for Codex)** ",
@@ -370,8 +353,6 @@ def transform_codex_skill_markdown(rel_path: Path, text: str) -> str:
         text = text.replace("CLAUDE.md", "AGENTS.md")
     elif rel_str == "receiving-code-review/SKILL.md":
         text = text.replace("CLAUDE.md", "AGENTS.md")
-    elif rel_str == "executing-plans/SKILL.md":
-        text = transform_executing_plans_codex(text)
 
     return cleanup_codex_generic(text)
 
@@ -381,8 +362,6 @@ def transform_claude_skill_markdown(rel_path: Path, text: str) -> str:
 
     if rel_str == "brainstorming/visual-companion.md":
         return transform_visual_companion_claude(text)
-    if rel_str == "executing-plans/SKILL.md":
-        return transform_executing_plans_claude(text)
     if rel_str == "writing-skills/SKILL.md":
         return transform_writing_skills_claude(text)
     if rel_str == "dispatching-parallel-agents/SKILL.md":

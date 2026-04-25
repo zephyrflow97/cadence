@@ -9,7 +9,6 @@ TEST_DIR="$(mktemp -d)"
 EXPECTED_SKILLS=(
   brainstorming
   writing-plans
-  executing-plans
   using-git-worktrees
   subagent-driven-development
   dispatching-parallel-agents
@@ -106,6 +105,10 @@ assert_not_exists \
   "$TEST_DIR/.claude/skills/using-cadence" \
   "removed using-cadence skill should not be installed"
 
+assert_not_exists \
+  "$TEST_DIR/.claude/skills/executing-plans" \
+  "removed executing-plans skill should not be installed"
+
 python3 - "$TEST_DIR/.claude/.cadence-generated.json" <<'PY'
 import json
 import sys
@@ -113,7 +116,6 @@ import sys
 expected_skills = [
     "brainstorming",
     "dispatching-parallel-agents",
-    "executing-plans",
     "finishing-a-development-branch",
     "receiving-code-review",
     "requesting-code-review",
