@@ -7,7 +7,6 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TEST_DIR="$(mktemp -d)"
 
 EXPECTED_SKILLS=(
-  using-cadence
   brainstorming
   writing-plans
   executing-plans
@@ -78,7 +77,26 @@ bash "$REPO_ROOT/scripts/install.sh" --codex "$TEST_DIR" >/dev/null
 bash "$REPO_ROOT/scripts/install.sh" --codex "$TEST_DIR" >/dev/null
 
 test -f "$TEST_DIR/.codex/.cadence-generated.json"
-test -f "$TEST_DIR/AGENTS.md"
+test ! -e "$TEST_DIR/AGENTS.md"
+
+LEGACY_CODEX_DIR="$TEST_DIR/legacy-codex"
+mkdir "$LEGACY_CODEX_DIR"
+cat > "$LEGACY_CODEX_DIR/AGENTS.md" <<'MD'
+# Existing agent instructions
+
+<!-- BEGIN cadence-block -->
+legacy cadence instructions
+<!-- END cadence-block -->
+MD
+bash "$REPO_ROOT/scripts/install.sh" --codex "$LEGACY_CODEX_DIR" >/dev/null
+assert_contains \
+  "$LEGACY_CODEX_DIR/AGENTS.md" \
+  "# Existing agent instructions" \
+  "Codex install should preserve existing user AGENTS.md content"
+if grep -Fq "cadence-block" "$LEGACY_CODEX_DIR/AGENTS.md"; then
+  echo "FAIL: Codex install should remove legacy cadence block without adding a new one" >&2
+  exit 1
+fi
 
 for skill in "${EXPECTED_SKILLS[@]}"; do
   test -e "$TEST_DIR/.codex/skills/$skill"
@@ -89,15 +107,14 @@ assert_not_exists \
   "non-core writing-skills directory should not be installed"
 
 assert_not_exists \
-  "$TEST_DIR/.codex/skills/using-cadence/references/codex-tools.md" \
-  "Codex install should not include the old codex-tools reference page"
+  "$TEST_DIR/.codex/skills/using-cadence" \
+  "removed using-cadence skill should not be installed"
 
 python3 - "$TEST_DIR/.codex/.cadence-generated.json" <<'PY'
 import json
 import sys
 
 expected_skills = [
-    "using-cadence",
     "brainstorming",
     "writing-plans",
     "executing-plans",
@@ -120,21 +137,6 @@ assert "writing-skills" not in data["skills"], data
 assert data["agents"] == [], data
 assert len(data["files"]) >= len(expected_skills), data
 PY
-
-assert_contains \
-  "$TEST_DIR/.codex/skills/using-cadence/SKILL.md" \
-  "description: Use when starting any conversation - establishes how to find and use skills, requiring Skill invocation before ANY response including clarifying questions" \
-  "using-cadence should preserve the original description with only the Codex-specific wording adjusted"
-
-assert_contains \
-  "$TEST_DIR/.codex/skills/using-cadence/SKILL.md" \
-  '**In Codex:** Skills are auto-discovered via `~/.codex/skills/`.' \
-  "using-cadence should preserve the original Codex access instructions"
-
-assert_contains \
-  "$TEST_DIR/.codex/skills/using-cadence/SKILL.md" \
-  "If you think there is even a 1% chance a skill might apply to what you are doing, you ABSOLUTELY MUST invoke the skill." \
-  "using-cadence should preserve the original invoke-the-skill instruction"
 
 assert_contains \
   "$TEST_DIR/.codex/skills/requesting-code-review/SKILL.md" \
@@ -195,26 +197,6 @@ assert_contains \
   "$TEST_DIR/.codex/skills/brainstorming/visual-companion.md" \
   'Create or update each HTML file with `apply_patch`' \
   "visual companion should reference Codex editing guidance"
-
-assert_contains \
-  "$TEST_DIR/.codex/skills/using-cadence/SKILL.md" \
-  "Skills in this install already use Codex-native tool names. Follow the instructions directly." \
-  "using-cadence should adapt the platform section without adding extra workflow content"
-
-assert_contains \
-  "$TEST_DIR/.codex/skills/using-cadence/SKILL.md" \
-  "Read relevant SKILL.md" \
-  "using-cadence should translate skill invocation into Codex-native wording"
-
-assert_contains \
-  "$TEST_DIR/.codex/skills/using-cadence/SKILL.md" \
-  "Create update_plan item per checklist item" \
-  "using-cadence should translate TodoWrite guidance into update_plan wording"
-
-assert_tree_not_contains \
-  "$TEST_DIR/.codex/skills/using-cadence" \
-  "**In Claude Code:**" \
-  "Codex render should drop the Claude-specific access instructions"
 
 assert_tree_not_contains \
   "$TEST_DIR/.codex/skills" \

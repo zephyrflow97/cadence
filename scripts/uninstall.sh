@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Reverse install.sh: remove generated Cadence files, legacy symlinks, hook
-# entries, and the Codex AGENTS.md block from a project. Safe/idempotent.
+# Reverse install.sh: remove generated Cadence files, legacy symlinks, legacy
+# hook entries, and legacy Codex AGENTS.md blocks. Safe/idempotent.
 #
 # Usage: bash scripts/uninstall.sh [--claude-code] [--codex] [target-project-path]
 #   If neither --claude-code nor --codex is given, uninstalls both.

@@ -14,9 +14,6 @@ from pathlib import Path
 MARKER_FILE = ".cadence-generated.json"
 
 CODEX_CORE_SKILL_FILES: dict[str, list[str]] = {
-    "using-cadence": [
-        "SKILL.md",
-    ],
     "brainstorming": [
         "SKILL.md",
         "visual-companion.md",
@@ -73,10 +70,6 @@ CODEX_CORE_SKILL_FILES: dict[str, list[str]] = {
     ],
 }
 
-CLAUDE_EXCLUDED_SKILL_FILES = {
-    Path("using-cadence/references/codex-tools.md"),
-}
-
 
 def block(text: str) -> str:
     return textwrap.dedent(text).strip() + "\n"
@@ -94,68 +87,6 @@ def replace_section(text: str, heading: str, replacement: str, next_heading_leve
     )
     return pattern.sub(block(replacement) + "\n", text, count=1)
 
-
-def remove_section(text: str, heading: str, next_heading_level: str = "## ") -> str:
-    pattern = re.compile(
-        rf"^{re.escape(heading)}\n.*?(?=^{re.escape(next_heading_level)}|\Z)",
-        re.MULTILINE | re.DOTALL,
-    )
-    return tidy_markdown(pattern.sub("", text, count=1))
-
-
-def render_claude_using_cadence(source_text: str) -> str:
-    text = replace_section(
-        source_text,
-        "## How to Access Skills",
-        """
-        ## How to Access Skills
-
-        **In Claude Code:** Use the `Skill` tool. When you invoke a skill, its content is loaded and presented to you—follow it directly. Never use the Read tool on skill files.
-        """,
-        next_heading_level="## Platform Adaptation",
-    )
-    text = remove_section(text, "## Platform Adaptation", next_heading_level="# Using Skills")
-    return tidy_markdown(text)
-
-
-def render_codex_using_cadence(source_text: str) -> str:
-    text = source_text
-
-    text = text.replace(
-        "requiring Skill tool invocation before ANY response including clarifying questions",
-        "requiring Skill invocation before ANY response including clarifying questions",
-    )
-    text = replace_section(
-        text,
-        "## How to Access Skills",
-        """
-        ## How to Access Skills
-
-        **In Codex:** Skills are auto-discovered via `~/.codex/skills/`. Invocation is native — read the SKILL.md content and follow it directly.
-        """,
-        next_heading_level="## Platform Adaptation",
-    )
-    text = replace_section(
-        text,
-        "## Platform Adaptation",
-        """
-        ## Platform Adaptation
-
-        Skills in this install already use Codex-native tool names. Follow the instructions directly.
-        """,
-        next_heading_level="# Using Skills",
-    )
-    replacements = [
-        ("Invoke Skill tool", "Read relevant SKILL.md"),
-        ("Create TodoWrite todo per item", "Create update_plan item per checklist item"),
-        (
-            "**Invoke relevant or requested skills BEFORE any response or action.** Even a 1% chance a skill might apply means that you should invoke the skill to check. If an invoked skill turns out to be wrong for the situation, you don't need to use it.",
-            "**Invoke relevant or requested skills BEFORE any response or action.** Even a 1% chance a skill might apply means that you should read the skill to check. If that skill turns out to be wrong for the situation, you don't need to use it.",
-        ),
-    ]
-    for old, new in replacements:
-        text = text.replace(old, new)
-    return tidy_markdown(text)
 
 def render_requesting_code_review(source_text: str) -> str:
     text = source_text
@@ -416,7 +347,6 @@ def cleanup_codex_generic(text: str) -> str:
 
 
 CODEX_FULL_RENDERERS = {
-    "using-cadence/SKILL.md": render_codex_using_cadence,
     "requesting-code-review/SKILL.md": render_requesting_code_review,
     "requesting-code-review/code-reviewer.md": render_code_reviewer_prompt,
     "dispatching-parallel-agents/SKILL.md": render_dispatching_parallel_agents,
@@ -449,8 +379,6 @@ def transform_codex_skill_markdown(rel_path: Path, text: str) -> str:
 def transform_claude_skill_markdown(rel_path: Path, text: str) -> str:
     rel_str = rel_path.as_posix()
 
-    if rel_str == "using-cadence/SKILL.md":
-        return render_claude_using_cadence(text)
     if rel_str == "brainstorming/visual-companion.md":
         return transform_visual_companion_claude(text)
     if rel_str == "executing-plans/SKILL.md":
@@ -482,8 +410,6 @@ def selected_claude_items(repo_root: Path) -> list[tuple[Path, Path, str, Path]]
     skills_root = repo_root / "skills"
     for src in iter_files(skills_root):
         logical_rel = src.relative_to(skills_root)
-        if logical_rel in CLAUDE_EXCLUDED_SKILL_FILES:
-            continue
         items.append((src, Path("skills") / logical_rel, "skills", logical_rel))
 
     agents_root = repo_root / "agents"

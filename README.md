@@ -1,6 +1,6 @@
 # Cadence
 
-Cadence is a complete software development workflow for your coding agents, built on top of a set of composable "skills" and some initial instructions that make sure your agent uses them.
+Cadence is a complete software development workflow for your coding agents, built on top of a set of composable native skills.
 
 ## How it works
 
@@ -12,7 +12,7 @@ After you've signed off on the design, your agent puts together an implementatio
 
 Next up, once you say "go", it launches a *subagent-driven-development* process, having agents work through each engineering task, inspecting and reviewing their work, and continuing forward. It's not uncommon for Claude to be able to work autonomously for a couple hours at a time without deviating from the plan you put together.
 
-There's a bunch more to it, but that's the core of the system. And because the skills trigger automatically, you don't need to do anything special. Your coding agent just has Cadence.
+There's a bunch more to it, but that's the core of the system. Cadence ships these workflows as native skills your coding agent can select when they fit the task.
 
 ## The Basic Workflow
 
@@ -30,7 +30,7 @@ There's a bunch more to it, but that's the core of the system. And because the s
 
 7. **finishing-a-development-branch** - Activates when tasks complete. Verifies tests, presents options (merge/PR/keep/discard), cleans up worktree.
 
-**The agent checks for relevant skills before any task.** Mandatory workflows, not suggestions.
+**Use the relevant skill when the task calls for one.** The workflows are meant to be followed, not skimmed.
 
 ## What's Inside
 
@@ -56,7 +56,6 @@ There's a bunch more to it, but that's the core of the system. And because the s
 
 **Meta**
 - **writing-skills** - Create new skills following best practices (includes testing methodology)
-- **using-cadence** - Introduction to the skills system
 
 ## Philosophy
 

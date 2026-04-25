@@ -132,18 +132,18 @@ You: I'm using Subagent-Driven Development to execute this plan.
 [Extract all 5 tasks with full text and context]
 [Create TodoWrite with all tasks]
 
-Task 1: Hook installation script
+Task 1: CLI configuration script
 
 [Get Task 1 text and context (already extracted)]
 [Dispatch implementation subagent with full task text + context]
 
-Implementer: "Before I begin - should the hook be installed at user or system level?"
+Implementer: "Before I begin - should the config be written at user or project level?"
 
-You: "User level (~/.config/cadence/hooks/)"
+You: "Project level (.cadence/config.json)"
 
 Implementer: "Got it. Implementing now..."
 [Later] Implementer:
-  - Implemented install-hook command
+  - Implemented init-config command
   - Added tests, 5/5 passing
   - Self-review: Found I missed --force flag, added it
   - Committed

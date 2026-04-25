@@ -7,7 +7,6 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TEST_DIR="$(mktemp -d)"
 
 EXPECTED_SKILLS=(
-  using-cadence
   brainstorming
   writing-plans
   executing-plans
@@ -66,16 +65,46 @@ bash "$REPO_ROOT/scripts/install.sh" --claude-code "$TEST_DIR" >/dev/null
 bash "$REPO_ROOT/scripts/install.sh" --claude-code "$TEST_DIR" >/dev/null
 
 test -f "$TEST_DIR/.claude/.cadence-generated.json"
-test -f "$TEST_DIR/.claude/settings.json"
+test ! -e "$TEST_DIR/.claude/settings.json"
 test -f "$TEST_DIR/.claude/agents/code-reviewer.md"
+
+LEGACY_CLAUDE_DIR="$TEST_DIR/legacy-claude"
+mkdir -p "$LEGACY_CLAUDE_DIR/.claude"
+cat > "$LEGACY_CLAUDE_DIR/.claude/settings.json" <<'JSON'
+{
+  "keep": true,
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/tmp/cadence/hooks/run-hook.cmd\" session-start",
+            "async": false
+          }
+        ]
+      }
+    ]
+  }
+}
+JSON
+bash "$REPO_ROOT/scripts/install.sh" --claude-code "$LEGACY_CLAUDE_DIR" >/dev/null
+python3 - "$LEGACY_CLAUDE_DIR/.claude/settings.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data == {"keep": True}, data
+PY
 
 for skill in "${EXPECTED_SKILLS[@]}"; do
   test -e "$TEST_DIR/.claude/skills/$skill"
 done
 
 assert_not_exists \
-  "$TEST_DIR/.claude/skills/using-cadence/references/codex-tools.md" \
-  "Claude install should not include Codex-only reference docs"
+  "$TEST_DIR/.claude/skills/using-cadence" \
+  "removed using-cadence skill should not be installed"
 
 python3 - "$TEST_DIR/.claude/.cadence-generated.json" <<'PY'
 import json
@@ -91,7 +120,6 @@ expected_skills = [
     "subagent-driven-development",
     "systematic-debugging",
     "test-driven-development",
-    "using-cadence",
     "using-git-worktrees",
     "verification-before-completion",
     "writing-plans",
@@ -103,24 +131,8 @@ assert data["platform"] == "claude-code", data
 assert data["mode"] == "full-native-install", data
 assert data["skills"] == expected_skills, data
 assert data["agents"] == ["code-reviewer.md"], data
-assert "skills/using-cadence/SKILL.md" in data["files"], data
 assert "agents/code-reviewer.md" in data["files"], data
 PY
-
-assert_contains \
-  "$TEST_DIR/.claude/skills/using-cadence/SKILL.md" \
-  "description: Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions" \
-  "using-cadence should preserve the original Claude skill description"
-
-assert_contains \
-  "$TEST_DIR/.claude/skills/using-cadence/SKILL.md" \
-  '**In Claude Code:** Use the `Skill` tool.' \
-  "using-cadence should preserve the original Claude access instructions"
-
-assert_tree_not_contains \
-  "$TEST_DIR/.claude/skills/using-cadence" \
-  "## Platform Adaptation" \
-  "Claude render should drop the Codex platform-adaptation section"
 
 assert_contains \
   "$TEST_DIR/.claude/skills/writing-skills/SKILL.md" \

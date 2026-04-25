@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Install Cadence into a project's local .claude/ and .codex/ (not globally).
 # Both Claude Code and Codex receive generated, platform-native install files.
+# The installer does not inject Cadence instructions into AGENTS.md or Claude hooks.
 #
 # Usage: bash scripts/install.sh [--claude-code] [--codex] [target-project-path]
 #   If neither --claude-code nor --codex is given, installs both.
@@ -49,7 +50,7 @@ TARGET="$(cd "$TARGET" && pwd)"
 }
 
 command -v python3 >/dev/null || {
-  echo "error: python3 required (used to generate install files and merge settings)" >&2
+  echo "error: python3 required (used to generate install files)" >&2
   exit 1
 }
 
@@ -77,6 +78,83 @@ remove_legacy_symlink() {
 
   rm "$dst"
   echo "  removed legacy link $dst"
+}
+
+clean_claude_hook() {
+  python3 - "$1" <<'PY'
+import json, os, sys
+path = sys.argv[1]
+if not os.path.exists(path):
+    sys.exit(0)
+
+with open(path) as f:
+    try:
+        data = json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"  skip {path} (unparseable: {e})")
+        sys.exit(0)
+
+hooks = data.get("hooks") or {}
+entries = hooks.get("SessionStart") or []
+kept = [
+    e for e in entries
+    if not any("run-hook.cmd" in h.get("command", "") for h in e.get("hooks", []))
+]
+removed = len(entries) - len(kept)
+if removed == 0:
+    sys.exit(0)
+
+if kept:
+    hooks["SessionStart"] = kept
+elif "SessionStart" in hooks:
+    del hooks["SessionStart"]
+
+if hooks:
+    data["hooks"] = hooks
+elif "hooks" in data:
+    del data["hooks"]
+
+if data:
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+    print(f"  removed legacy cadence hook from {path}")
+else:
+    os.remove(path)
+    print(f"  removed {path} (empty after legacy cadence hook cleanup)")
+PY
+}
+
+clean_codex_agents_block() {
+  python3 - "$1" <<'PY'
+import os, re, sys
+path = sys.argv[1]
+if not os.path.exists(path):
+    sys.exit(0)
+
+begin = "<!-- BEGIN cadence-block -->"
+end = "<!-- END cadence-block -->"
+with open(path) as f:
+    text = f.read()
+
+if begin not in text:
+    sys.exit(0)
+
+new = re.sub(
+    r"\n*" + re.escape(begin) + r".*?" + re.escape(end) + r"\n*",
+    "\n",
+    text,
+    flags=re.DOTALL,
+).strip()
+
+if new:
+    with open(path, "w") as f:
+        f.write(new + "\n")
+    print(f"  removed legacy cadence block from {path}")
+else:
+    os.remove(path)
+    print(f"  removed {path} (empty after legacy cadence block cleanup)")
+PY
 }
 
 if (( do_claude )); then
@@ -107,35 +185,7 @@ if (( do_claude )); then
     "$claude_root"
   echo "  generated $claude_root/skills and $claude_root/agents from $CADENCE_ROOT"
 
-  python3 - "$claude_root/settings.json" "$CADENCE_ROOT/hooks/run-hook.cmd" <<'PY'
-import json, os, sys
-path, hook_cmd = sys.argv[1], sys.argv[2]
-command_line = f'"{hook_cmd}" session-start'
-
-data = {}
-if os.path.exists(path):
-    with open(path) as f:
-        data = json.load(f)
-
-hooks = data.setdefault("hooks", {})
-entries = hooks.get("SessionStart", [])
-entries = [
-    e for e in entries
-    if not any("run-hook.cmd" in h.get("command", "") for h in e.get("hooks", []))
-]
-entries.append({
-    "matcher": "startup|clear|compact",
-    "hooks": [{"type": "command", "command": command_line, "async": False}],
-})
-hooks["SessionStart"] = entries
-data["hooks"] = hooks
-
-os.makedirs(os.path.dirname(path), exist_ok=True)
-with open(path, "w") as f:
-    json.dump(data, f, indent=2)
-    f.write("\n")
-print(f"  wrote {path}")
-PY
+  clean_claude_hook "$claude_root/settings.json"
 fi
 
 if (( do_codex )); then
@@ -176,36 +226,7 @@ if (( do_codex )); then
     "$codex_root"
   echo "  generated $codex_skills_dir from $CADENCE_ROOT/skills"
 
-  python3 - "$TARGET/AGENTS.md" <<'PY'
-import os, re, sys
-path = sys.argv[1]
-begin = "<!-- BEGIN cadence-block -->"
-end = "<!-- END cadence-block -->"
-block = f"""{begin}
-## Cadence skills
-
-This project uses Cadence's Codex-native skill pack. Skills live at
-`.codex/skills/`. Before any task, read
-`.codex/skills/using-cadence/SKILL.md` and follow it.
-{end}"""
-
-text = open(path).read() if os.path.exists(path) else ""
-if begin in text:
-    text = re.sub(
-        re.escape(begin) + r".*?" + re.escape(end),
-        block,
-        text,
-        flags=re.DOTALL,
-    )
-    action = "updated cadence block in"
-else:
-    text = (text.rstrip() + "\n\n" if text else "") + block + "\n"
-    action = "appended cadence block to"
-
-with open(path, "w") as f:
-    f.write(text)
-print(f"  {action} {path}")
-PY
+  clean_codex_agents_block "$TARGET/AGENTS.md"
 fi
 
 echo
