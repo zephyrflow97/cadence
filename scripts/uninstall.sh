@@ -149,9 +149,8 @@ if (( do_codex )); then
   legacy_codex_skills_marker="$legacy_codex_skills_dir/.cadence-generated.json"
 
   if [[ -f "$codex_marker" ]]; then
-    rm -rf "$codex_skills_dir"
-    rm -f "$codex_marker"
-    echo "  removed generated $codex_skills_dir"
+    python3 "$CADENCE_ROOT/scripts/remove_generated_package.py" "$codex_root" "$codex_marker"
+    echo "  removed generated Codex files from $codex_root"
   elif [[ -f "$codex_legacy_marker" ]]; then
     rm -rf "$codex_skills_dir"
     echo "  removed legacy generated $codex_skills_dir"

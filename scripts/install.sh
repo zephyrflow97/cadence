@@ -191,6 +191,10 @@ fi
 if (( do_codex )); then
   codex_root="$TARGET/.codex"
   codex_skills_dir="$codex_root/skills"
+  codex_agents_dir="$codex_root/agents"
+  codex_agent_files=(
+    code-reviewer.toml
+  )
   codex_marker="$codex_root/.cadence-generated.json"
   codex_legacy_marker="$codex_skills_dir/.cadence-generated.json"
   legacy_codex_root="$TARGET/.agents"
@@ -198,9 +202,18 @@ if (( do_codex )); then
   legacy_codex_marker="$legacy_codex_root/.cadence-generated.json"
   legacy_codex_skills_marker="$legacy_codex_skills_dir/.cadence-generated.json"
 
+  if [[ ! -f "$codex_marker" ]]; then
+    for codex_agent_file in "${codex_agent_files[@]}"; do
+      codex_agent_path="$codex_agents_dir/$codex_agent_file"
+      if [[ -e "$codex_agent_path" ]]; then
+        echo "error: $codex_agent_path exists and is not managed by this installer; move or remove it first" >&2
+        exit 1
+      fi
+    done
+  fi
+
   if [[ -f "$codex_marker" ]]; then
-    rm -rf "$codex_skills_dir"
-    rm -f "$codex_marker"
+    python3 "$CADENCE_ROOT/scripts/remove_generated_package.py" "$codex_root" "$codex_marker"
   elif [[ -f "$codex_legacy_marker" ]]; then
     rm -rf "$codex_skills_dir"
   elif remove_legacy_symlink "$codex_skills_dir" "$CADENCE_ROOT/skills"; then
@@ -224,7 +237,7 @@ if (( do_codex )); then
     --platform codex \
     "$CADENCE_ROOT" \
     "$codex_root"
-  echo "  generated $codex_skills_dir from $CADENCE_ROOT/skills"
+  echo "  generated $codex_skills_dir and $codex_agents_dir from $CADENCE_ROOT"
 
   clean_codex_agents_block "$TARGET/AGENTS.md"
 fi

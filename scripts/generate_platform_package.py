@@ -67,6 +67,17 @@ CODEX_CORE_SKILL_FILES: dict[str, list[str]] = {
     ],
 }
 
+CODEX_AGENT_FILES = [
+    "code-reviewer.md",
+]
+
+CODEX_AGENT_EXTRA_INSTRUCTIONS = {
+    "code-reviewer.md": (
+        "Codex-specific operating rule: review only. Do not edit files, run formatters, "
+        "or attempt fixes. Report findings with exact file and line references where possible."
+    ),
+}
+
 
 def block(text: str) -> str:
     return textwrap.dedent(text).strip() + "\n"
@@ -89,15 +100,15 @@ def render_requesting_code_review(source_text: str) -> str:
     text = source_text
     text = text.replace(
         "Dispatch cadence:code-reviewer subagent to catch issues before they cascade.",
-        "Dispatch a read-only code review explorer to catch issues before they cascade.",
+        "Dispatch the `code-reviewer` custom subagent to catch issues before they cascade.",
     )
     text = text.replace(
         "Use Task tool with cadence:code-reviewer type, fill template at `code-reviewer.md`",
-        'Use `spawn_agent(agent_type="explorer", message=...)` with the filled template at `code-reviewer.md`',
+        'Use `spawn_agent(agent_type="code-reviewer")`, filling the template at `code-reviewer.md`',
     )
     text = text.replace(
         "[Dispatch cadence:code-reviewer subagent]",
-        'spawn_agent(agent_type="explorer", message="[filled prompt from requesting-code-review/code-reviewer.md]")',
+        'spawn_agent(agent_type="code-reviewer"):',
     )
     return tidy_markdown(text)
 
@@ -106,9 +117,9 @@ def render_code_reviewer_prompt(source_text: str) -> str:
     return source_text.replace(
         "# Code Review Agent\n\nYou are reviewing code changes for production readiness.\n",
         (
-            "# Code Review Explorer Prompt\n\n"
-            "Use this file as the `message` for `spawn_agent(agent_type=\"explorer\", ...)`.\n\n"
-            "You are a read-only code review explorer. Review code changes for production readiness. Do not edit files.\n"
+            "# Code Review Prompt\n\n"
+            "Use this file as the `message` for `spawn_agent(agent_type=\"code-reviewer\", ...)`.\n\n"
+            "The named `code-reviewer` subagent supplies the reviewer persona. This prompt supplies the specific scope, diff range, and output format.\n"
         ),
         1,
     )
@@ -122,7 +133,7 @@ def render_dispatching_parallel_agents(source_text: str) -> str:
 
 def render_subagent_driven_development(source_text: str) -> str:
     text = cleanup_codex_generic(source_text)
-    text = text.replace("[Dispatch final code-reviewer]", "[Dispatch final code review explorer]")
+    text = text.replace("[Dispatch final code-reviewer]", "[Dispatch final code-reviewer subagent]")
     return tidy_markdown(text)
 
 
@@ -183,40 +194,14 @@ def render_spec_reviewer_prompt(source_text: str) -> str:
 def render_code_quality_reviewer_prompt(source_text: str) -> str:
     text = source_text.replace(
         "Use this template when dispatching a code quality reviewer subagent.",
-        "Use this template when launching a code quality review explorer.",
+        "Use this template when dispatching the `code-reviewer` subagent.",
         1,
     )
-    old_block = block(
-        """
-        ```
-        Task tool (cadence:code-reviewer):
-          Use template at requesting-code-review/code-reviewer.md
-
-          WHAT_WAS_IMPLEMENTED: [from implementer's report]
-          PLAN_OR_REQUIREMENTS: Task N from [plan-file]
-          BASE_SHA: [commit before task]
-          HEAD_SHA: [current commit]
-          DESCRIPTION: [task summary]
-        ```
-        """
-    ).strip()
-    new_block = block(
-        """
-        Fill the placeholders in `requesting-code-review/code-reviewer.md`, then launch:
-
-        ```text
-        spawn_agent(agent_type="explorer", message="[filled prompt from requesting-code-review/code-reviewer.md]")
-        ```
-
-        Use these placeholder values:
-        - `WHAT_WAS_IMPLEMENTED`: [from implementer's report]
-        - `PLAN_OR_REQUIREMENTS`: Task N from [plan-file]
-        - `BASE_SHA`: [commit before task]
-        - `HEAD_SHA`: [current commit]
-        - `DESCRIPTION`: [task summary]
-        """
-    ).strip()
-    text = text.replace(old_block, new_block, 1)
+    text = text.replace(
+        "Task tool (cadence:code-reviewer):",
+        'spawn_agent(agent_type="code-reviewer"):',
+        1,
+    )
     return tidy_markdown(text)
 
 
@@ -329,6 +314,91 @@ def cleanup_codex_generic(text: str) -> str:
     return text
 
 
+def parse_agent_markdown(source_text: str) -> tuple[dict[str, str], str]:
+    match = re.match(r"\A---\n(.*?)\n---\n(.*)\Z", source_text, re.DOTALL)
+    if not match:
+        raise ValueError("Agent markdown must start with YAML frontmatter")
+
+    frontmatter, body = match.groups()
+    data: dict[str, str] = {}
+    lines = frontmatter.splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if not line.strip():
+            i += 1
+            continue
+        if ":" not in line:
+            raise ValueError(f"Unsupported frontmatter line: {line!r}")
+
+        key, value = line.split(":", 1)
+        key = key.strip()
+        value = value.lstrip()
+
+        if value.rstrip() in {"|", "|-", "|+"}:
+            i += 1
+            block_lines: list[str] = []
+            while i < len(lines):
+                block_line = lines[i]
+                if block_line.startswith("  "):
+                    block_lines.append(block_line[2:])
+                    i += 1
+                    continue
+                if not block_line.strip():
+                    block_lines.append("")
+                    i += 1
+                    continue
+                break
+            data[key] = "\n".join(block_lines).rstrip()
+            continue
+
+        data[key] = value.strip().strip('"').strip("'")
+        i += 1
+
+    return data, body.strip()
+
+
+def toml_basic_string(value: str) -> str:
+    return json.dumps(value)
+
+
+def toml_multiline_literal(value: str) -> str:
+    if "'''" in value:
+        return json.dumps(value)
+    return "'''\n" + value.rstrip() + "\n'''"
+
+
+def codex_agent_description(frontmatter: dict[str, str]) -> str:
+    description = frontmatter.get("codex_description") or frontmatter.get("description")
+    if not description:
+        raise ValueError("Agent markdown must provide description")
+
+    description = re.split(r"\bExamples?:", description, maxsplit=1)[0].strip()
+    description = re.sub(r"<[^>]+>", "", description).strip()
+    return description
+
+
+def transform_codex_agent_markdown(logical_rel: Path, source_text: str) -> str:
+    frontmatter, body = parse_agent_markdown(source_text)
+    name = frontmatter.get("name")
+    if not name:
+        raise ValueError("Agent markdown must provide name")
+    description = codex_agent_description(frontmatter)
+
+    extra_instructions = CODEX_AGENT_EXTRA_INSTRUCTIONS.get(logical_rel.as_posix())
+    developer_instructions = body
+    if extra_instructions:
+        developer_instructions += "\n\n" + extra_instructions
+    developer_instructions = tidy_markdown(developer_instructions)
+
+    return (
+        f"name = {toml_basic_string(name)}\n"
+        f"description = {toml_basic_string(description)}\n"
+        'sandbox_mode = "read-only"\n'
+        f"developer_instructions = {toml_multiline_literal(developer_instructions)}\n"
+    )
+
+
 CODEX_FULL_RENDERERS = {
     "requesting-code-review/SKILL.md": render_requesting_code_review,
     "requesting-code-review/code-reviewer.md": render_code_reviewer_prompt,
@@ -381,6 +451,13 @@ def selected_codex_items(repo_root: Path) -> list[tuple[Path, Path, str, Path]]:
         for rel_path in rel_paths:
             logical_rel = Path(skill) / rel_path
             items.append((skills_root / logical_rel, Path("skills") / logical_rel, "skills", logical_rel))
+
+    agents_root = repo_root / "agents"
+    for rel_path in CODEX_AGENT_FILES:
+        logical_rel = Path(rel_path)
+        dst_rel = Path("agents") / logical_rel.with_suffix(".toml")
+        items.append((agents_root / logical_rel, dst_rel, "agents", logical_rel))
+
     return items
 
 
@@ -413,7 +490,7 @@ def generate(repo_root: Path, target_root: Path, platform: str) -> None:
     if platform == "codex":
         items = selected_codex_items(repo_root)
         skills = list(CODEX_CORE_SKILL_FILES)
-        agents: list[str] = []
+        agents = [Path(path).with_suffix(".toml").as_posix() for path in CODEX_AGENT_FILES]
         mode = "core-native-skill-pack"
     else:
         items = selected_claude_items(repo_root)
@@ -434,6 +511,8 @@ def generate(repo_root: Path, target_root: Path, platform: str) -> None:
             text = src.read_text(encoding="utf-8")
             if platform == "codex" and namespace == "skills":
                 text = transform_codex_skill_markdown(logical_rel, text)
+            elif platform == "codex" and namespace == "agents":
+                text = transform_codex_agent_markdown(logical_rel, text)
             elif platform == "claude-code" and namespace == "skills":
                 text = transform_claude_skill_markdown(logical_rel, text)
             dst.write_text(text, encoding="utf-8")
