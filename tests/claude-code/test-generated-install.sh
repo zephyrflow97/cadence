@@ -18,7 +18,6 @@ EXPECTED_SKILLS=(
   test-driven-development
   systematic-debugging
   verification-before-completion
-  writing-skills
 )
 
 cleanup() {
@@ -125,7 +124,6 @@ expected_skills = [
     "using-git-worktrees",
     "verification-before-completion",
     "writing-plans",
-    "writing-skills",
 ]
 
 data = json.load(open(sys.argv[1]))
@@ -136,10 +134,9 @@ assert data["agents"] == ["code-reviewer.md"], data
 assert "agents/code-reviewer.md" in data["files"], data
 PY
 
-assert_contains \
-  "$TEST_DIR/.claude/skills/writing-skills/SKILL.md" \
-  '`~/.claude/skills`' \
-  "writing-skills should point at Claude's native skills directory"
+assert_not_exists \
+  "$TEST_DIR/.claude/skills/writing-skills" \
+  "meta writing-skills should not be installed"
 
 assert_tree_not_contains \
   "$TEST_DIR/.claude" \

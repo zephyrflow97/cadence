@@ -53,7 +53,7 @@ There's a bunch more to it, but that's the core of the system. Cadence ships the
 - **finishing-a-development-branch** - Merge/PR decision workflow
 - **subagent-driven-development** - Fast iteration with two-stage review (spec compliance, then code quality)
 
-**Meta**
+**Meta** (not installed by default — available in the cadence source tree)
 - **writing-skills** - Create new skills following best practices (includes testing methodology)
 
 ## Philosophy

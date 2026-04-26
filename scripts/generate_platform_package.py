@@ -13,6 +13,12 @@ from pathlib import Path
 
 MARKER_FILE = ".cadence-generated.json"
 
+# Skills excluded from default installs on every platform.
+# These are author-facing meta tools (e.g. writing-skills, which teaches
+# agents how to author new skills). They live in the cadence repository
+# for maintainers; users who want them should read the source tree directly.
+META_SKILLS: frozenset[str] = frozenset({"writing-skills"})
+
 CODEX_CORE_SKILL_FILES: dict[str, list[str]] = {
     "brainstorming": [
         "SKILL.md",
@@ -274,13 +280,6 @@ def transform_visual_companion_codex(text: str) -> str:
     return text
 
 
-def transform_writing_skills_claude(text: str) -> str:
-    return text.replace(
-        "**Personal skills live in agent-specific directories (`~/.claude/skills` for Claude Code, `~/.codex/skills/` for Codex)** ",
-        "**Personal skills live in `~/.claude/skills`** ",
-    )
-
-
 def cleanup_codex_generic(text: str) -> str:
     replacements = [
         ("TodoWrite", "update_plan"),
@@ -418,8 +417,6 @@ def transform_claude_skill_markdown(rel_path: Path, text: str) -> str:
 
     if rel_str == "brainstorming/visual-companion.md":
         return transform_visual_companion_claude(text)
-    if rel_str == "writing-skills/SKILL.md":
-        return transform_writing_skills_claude(text)
     if rel_str == "dispatching-parallel-agents/SKILL.md":
         return text.replace("// In Claude Code / AI environment", "// In Claude Code")
 
@@ -452,6 +449,8 @@ def selected_claude_items(repo_root: Path) -> list[tuple[Path, Path, str, Path]]
     skills_root = repo_root / "skills"
     for src in iter_files(skills_root):
         logical_rel = src.relative_to(skills_root)
+        if logical_rel.parts[0] in META_SKILLS:
+            continue
         items.append((src, Path("skills") / logical_rel, "skills", logical_rel))
 
     agents_root = repo_root / "agents"
@@ -473,6 +472,13 @@ def cadence_version(repo_root: Path) -> str | None:
 def generate(repo_root: Path, target_root: Path, platform: str) -> None:
     target_root.mkdir(parents=True, exist_ok=True)
 
+    existing_skills = {p.name for p in (repo_root / "skills").iterdir() if p.is_dir()}
+    unknown_meta = META_SKILLS - existing_skills
+    if unknown_meta:
+        raise ValueError(
+            f"META_SKILLS references unknown skills (typo or rename?): {sorted(unknown_meta)}"
+        )
+
     if platform == "codex":
         items = selected_codex_items(repo_root)
         skills = list(CODEX_CORE_SKILL_FILES)
@@ -480,7 +486,11 @@ def generate(repo_root: Path, target_root: Path, platform: str) -> None:
         mode = "core-native-skill-pack"
     else:
         items = selected_claude_items(repo_root)
-        skills = sorted(path.name for path in (repo_root / "skills").iterdir() if path.is_dir())
+        skills = sorted(
+            path.name
+            for path in (repo_root / "skills").iterdir()
+            if path.is_dir() and path.name not in META_SKILLS
+        )
         agents = sorted(path.relative_to(repo_root / "agents").as_posix() for path in iter_files(repo_root / "agents"))
         mode = "full-native-install"
 
