@@ -71,13 +71,6 @@ CODEX_AGENT_FILES = [
     "code-reviewer.md",
 ]
 
-CODEX_AGENT_EXTRA_INSTRUCTIONS = {
-    "code-reviewer.md": (
-        "Codex-specific operating rule: review only. Do not edit files, run formatters, "
-        "or attempt fixes. Report findings with exact file and line references where possible."
-    ),
-}
-
 
 def block(text: str) -> str:
     return textwrap.dedent(text).strip() + "\n"
@@ -382,11 +375,7 @@ def transform_codex_agent_markdown(logical_rel: Path, source_text: str) -> str:
         raise ValueError("Agent markdown must provide name")
     description = codex_agent_description(frontmatter)
 
-    extra_instructions = CODEX_AGENT_EXTRA_INSTRUCTIONS.get(logical_rel.as_posix())
-    developer_instructions = body
-    if extra_instructions:
-        developer_instructions += "\n\n" + extra_instructions
-    developer_instructions = tidy_markdown(developer_instructions)
+    developer_instructions = tidy_markdown(body)
 
     return (
         f"name = {toml_basic_string(name)}\n"
