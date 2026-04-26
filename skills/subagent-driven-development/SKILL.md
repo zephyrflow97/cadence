@@ -50,13 +50,13 @@ digraph process {
         "Mark task complete in TodoWrite" [shape=box];
     }
 
-    "Verify isolated worktree is ready\n(use cadence:using-git-worktrees if needed)" [shape=box];
+    "Verify isolated worktree is ready\n(use using-git-worktrees if needed)" [shape=box];
     "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
     "More tasks remain?" [shape=diamond];
     "Dispatch final code reviewer subagent for entire implementation" [shape=box];
-    "Use cadence:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
+    "Use finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
-    "Verify isolated worktree is ready\n(use cadence:using-git-worktrees if needed)" -> "Read plan, extract all tasks with full text, note context, create TodoWrite";
+    "Verify isolated worktree is ready\n(use using-git-worktrees if needed)" -> "Read plan, extract all tasks with full text, note context, create TodoWrite";
     "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
@@ -74,7 +74,7 @@ digraph process {
     "Mark task complete in TodoWrite" -> "More tasks remain?";
     "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
     "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
-    "Dispatch final code reviewer subagent for entire implementation" -> "Use cadence:finishing-a-development-branch";
+    "Dispatch final code reviewer subagent for entire implementation" -> "Use finishing-a-development-branch";
 }
 ```
 
@@ -122,7 +122,7 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 ```
 You: I'm using Subagent-Driven Development to execute this plan.
 
-[Verify isolated worktree is ready; use cadence:using-git-worktrees if needed]
+[Verify isolated worktree is ready; use using-git-worktrees if needed]
 [Read plan file once: docs/cadence/plans/feature-plan.md]
 [Extract all 5 tasks with full text and context]
 [Create TodoWrite with all tasks]
@@ -255,10 +255,10 @@ Done!
 ## Integration
 
 **Required workflow skills:**
-- **cadence:using-git-worktrees** - REQUIRED: Verify isolated workspace as the first step; use this skill to create one if needed
-- **cadence:writing-plans** - Creates the plan this skill executes
-- **cadence:requesting-code-review** - Code review template for reviewer subagents
-- **cadence:finishing-a-development-branch** - Complete development after all tasks
+- **using-git-worktrees** - REQUIRED: Verify isolated workspace as the first step; use this skill to create one if needed
+- **writing-plans** - Creates the plan this skill executes
+- **requesting-code-review** - Code review template for reviewer subagents
+- **finishing-a-development-branch** - Complete development after all tasks
 
 **Subagents should use:**
-- **cadence:test-driven-development** - Subagents follow TDD for each task
+- **test-driven-development** - Subagents follow TDD for each task

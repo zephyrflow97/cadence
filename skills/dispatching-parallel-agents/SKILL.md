@@ -65,11 +65,11 @@ Each agent gets:
 
 ### 3. Dispatch in Parallel
 
-```typescript
+```text
 // In Claude Code / AI environment
-Task("Fix agent-tool-abort.test.ts failures")
-Task("Fix batch-completion-behavior.test.ts failures")
-Task("Fix tool-approval-race-conditions.test.ts failures")
+Agent({ subagent_type: "general-purpose", description: "Fix agent-tool-abort tests", prompt: "Fix agent-tool-abort.test.ts failures" })
+Agent({ subagent_type: "general-purpose", description: "Fix batch-completion tests", prompt: "Fix batch-completion-behavior.test.ts failures" })
+Agent({ subagent_type: "general-purpose", description: "Fix race-condition tests", prompt: "Fix tool-approval-race-conditions.test.ts failures" })
 // All three run concurrently
 ```
 

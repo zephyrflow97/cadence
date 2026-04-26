@@ -49,7 +49,7 @@ This structure informs the task decomposition. Each task should produce self-con
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use cadence:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -140,5 +140,5 @@ After saving and committing the plan, stop. Do not execute until the user explic
 Say `go` to execute it with subagent-driven-development, or tell me what to change."**
 
 **If execution is approved:**
-- **REQUIRED SUB-SKILL:** Use cadence:subagent-driven-development
+- **REQUIRED SUB-SKILL:** Use subagent-driven-development
 - Fresh subagent per task + two-stage review

@@ -99,15 +99,15 @@ def replace_section(text: str, heading: str, replacement: str, next_heading_leve
 def render_requesting_code_review(source_text: str) -> str:
     text = source_text
     text = text.replace(
-        "Dispatch cadence:code-reviewer subagent to catch issues before they cascade.",
+        "Dispatch code-reviewer subagent to catch issues before they cascade.",
         "Dispatch the `code-reviewer` custom subagent to catch issues before they cascade.",
     )
     text = text.replace(
-        "Use Task tool with cadence:code-reviewer type, fill template at `code-reviewer.md`",
+        "Use Agent tool with subagent_type: code-reviewer, fill template at `code-reviewer.md`",
         'Use `spawn_agent(agent_type="code-reviewer")`, filling the template at `code-reviewer.md`',
     )
     text = text.replace(
-        "[Dispatch cadence:code-reviewer subagent]",
+        "[Dispatch code-reviewer subagent]",
         'spawn_agent(agent_type="code-reviewer"):',
     )
     return tidy_markdown(text)
@@ -138,7 +138,7 @@ def render_subagent_driven_development(source_text: str) -> str:
 
 
 def convert_task_prompt_block(text: str) -> str:
-    start = text.find("```\nTask tool (")
+    start = text.find("```\nAgent tool (")
     if start == -1:
         return text
 
@@ -198,7 +198,7 @@ def render_code_quality_reviewer_prompt(source_text: str) -> str:
         1,
     )
     text = text.replace(
-        "Task tool (cadence:code-reviewer):",
+        "Agent tool (subagent_type: code-reviewer):",
         'spawn_agent(agent_type="code-reviewer"):',
         1,
     )
@@ -290,11 +290,8 @@ def transform_writing_skills_claude(text: str) -> str:
 
 def cleanup_codex_generic(text: str) -> str:
     replacements = [
-        ("cadence:", ""),
         ("TodoWrite", "update_plan"),
-        ("Task tool", "spawn_agent"),
-        ("Task returns result", "Subagent returns result"),
-        ("Task completes automatically", "Close the subagent when you no longer need it"),
+        ("Agent tool", "spawn_agent"),
         ("Skill tool", "skill file"),
         ("Read tool", "read files directly"),
         ("Write tool", "apply_patch"),
@@ -307,7 +304,7 @@ def cleanup_codex_generic(text: str) -> str:
         text = text.replace(old, new)
 
     text = re.sub(
-        r'\bTask\("([^"]+)"\)',
+        r'\bAgent\(\{[^}]*prompt:\s*"([^"]+)"[^}]*\}\)',
         r'spawn_agent(agent_type="worker", message="\1")',
         text,
     )
